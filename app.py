@@ -157,7 +157,6 @@ def login_page():
             else:
                 st.error("Invalid username or password")
 
-    st.caption("Default credentials → Username: `admin`  |  Password: `admin@123`")
 
 
 # ---------------------------------------------------------------------------
