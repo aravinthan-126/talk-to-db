@@ -75,7 +75,6 @@ talk_to_db/
 ├── app.py
 ├── database.py
 ├── requirements.txt
-├── .env
 ├── README.md
 └── employees.db          # Sample SQLite DB
 ```
