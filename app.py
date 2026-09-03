@@ -58,7 +58,7 @@ st.set_page_config(
 
 VALID_USERNAME = "admin"
 VALID_PASSWORD = "admin@123"
-GROQ_API_KEY = "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"
+GROQ_API_KEY = "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"
 
 TAMIL_UNICODE_RANGE = re.compile(r"[\u0B80-\u0BFF]")
 
