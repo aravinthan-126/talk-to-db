@@ -6,7 +6,7 @@ SQL + MongoDB + GridFS
 import os
 import re
 from typing import Any
-
+from pathlib import Path
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -637,24 +637,31 @@ def chat_app():
             with st.expander("View Schema / Samples"):
                 st.code(get_excel_schema(xs), language="text")
             st.caption(f"Working file:\n`{xs.get('path','')}`")
-            st.info("Browser uploads cannot overwrite your original file. Download the updated Excel after edits.")
-            try:
-                with open(xs["path"], "rb") as fh:
-                    data = fh.read()
-                fname = xs.get("original_name") or os.path.basename(xs["path"])
-                if not str(fname).lower().endswith((".xlsx", ".xlsm", ".xls")):
-                    fname = str(Path(fname).stem) + ".xlsx"
-                st.download_button(
-                    "⬇️ Download updated Excel",
-                    data=data,
-                    file_name=fname,
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    key="dl_excel_sidebar",
-                    type="primary",
-                )
-            except Exception as e:
-                st.warning(f"Download unavailable: {e}")
+st.info("Browser uploads cannot overwrite your original file. Download the updated Excel after edits.")
 
+try:
+    path = xs.get("path")
+    if not path or not os.path.isfile(path):
+        st.warning("Working file not found on disk.")
+    else:
+        with open(path, "rb") as fh:
+            data = fh.read()
+
+        # Build a clean download filename
+        original = xs.get("original_name") or os.path.basename(path)
+        stem = Path(original).stem
+        fname = f"{stem}.xlsx"          # always serve as .xlsx
+
+        st.download_button(
+            label="⬇️ Download updated Excel",
+            data=data,
+            file_name=fname,
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key="dl_excel_sidebar",
+            type="primary",
+        )
+except Exception as e:
+    st.warning(f"Download unavailable: {e}")
         st.divider()
         st.subheader("LLM Settings")
         st.success("✅ Groq API Key loaded from program")
