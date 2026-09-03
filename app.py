@@ -2,20 +2,17 @@
 Talk-to-DB : Conversational Natural Language Interface to Database
 SQL + MongoDB + GridFS
 """
-
 import os
 import re
 from typing import Any
 from pathlib import Path
 from dotenv import load_dotenv
 load_dotenv()
-
 import streamlit as st
 from deep_translator import GoogleTranslator
 from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from sqlalchemy.engine import Engine
-
 from database import (
     create_sample_database,
     create_sqlite_engine,
@@ -62,10 +59,8 @@ GROQ_API_KEY = "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"
 
 TAMIL_UNICODE_RANGE = re.compile(r"[\u0B80-\u0BFF]")
 
-
 def contains_tamil(text: str) -> bool:
     return bool(TAMIL_UNICODE_RANGE.search(text))
-
 
 def translate_to_english(text: str) -> str:
     if not contains_tamil(text):
@@ -76,14 +71,12 @@ def translate_to_english(text: str) -> str:
         st.warning(f"Translation failed ({e}). Using original text.")
         return text
 
-
 def is_write_query(sql: str) -> bool:
     sql_upper = (sql or "").strip().upper()
     return any(
         sql_upper.startswith(kw)
         for kw in ("INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "TRUNCATE", "CREATE")
     )
-
 
 def is_mongo_write(code: str) -> bool:
     lower = (code or "").lower()
@@ -96,7 +89,6 @@ def is_mongo_write(code: str) -> bool:
     ]
     return any(kw in lower for kw in write_keywords)
 
-
 def get_mongo_db():
     db = st.session_state.get("mongo_db", None)
     if db is None:
@@ -106,10 +98,8 @@ def get_mongo_db():
         st.rerun()
     return db
 
-
 def get_llm(api_key: str, model: str = "qwen/qwen3.8-27b"):
     return ChatGroq(groq_api_key=api_key, model_name=model, temperature=0.1)
-
 
 def _extract_code_from_llm(text: str) -> str:
     if not text:
@@ -135,7 +125,6 @@ def _extract_code_from_llm(text: str) -> str:
     cleaned = "\n".join(code_lines).strip()
     return cleaned or raw.strip()
 
-
 def _sql_system_message(schema: str) -> str:
     return (
         "You are an expert SQL assistant.\n"
@@ -147,7 +136,6 @@ def _sql_system_message(schema: str) -> str:
         "3. Prefer SELECT. Use INSERT/UPDATE/DELETE only when asked to modify data.\n"
         "4. Never DROP/ALTER/CREATE unless explicitly asked.\n"
     )
-
 
 def _mongo_system_message(schema: str) -> str:
     return (
@@ -163,7 +151,6 @@ def _mongo_system_message(schema: str) -> str:
         "6. Never drop collections unless explicitly asked.\n"
     )
 
-
 def generate_sql(llm, question: str, schema: str, chat_history: list) -> str:
     messages = [SystemMessage(content=_sql_system_message(schema))]
     messages.extend(chat_history)
@@ -171,7 +158,6 @@ def generate_sql(llm, question: str, schema: str, chat_history: list) -> str:
     response = llm.invoke(messages)
     content = response.content if hasattr(response, "content") else str(response)
     return _extract_code_from_llm(str(content or ""))
-
 
 def generate_mongo_code(llm, question: str, schema: str, chat_history: list) -> str:
     messages = [SystemMessage(content=_mongo_system_message(schema))]
@@ -181,24 +167,16 @@ def generate_mongo_code(llm, question: str, schema: str, chat_history: list) -> 
     content = response.content if hasattr(response, "content") else str(response)
     return _extract_code_from_llm(str(content or ""))
 
-
-# ---------------------------------------------------------------------------
-# Login
-# ---------------------------------------------------------------------------
-
 def _excel_system_message(schema: str) -> str:
     return f"""You are an expert Excel assistant using pandas + openpyxl.
 Convert the user request into short Python code.
-
 WORKBOOK SCHEMA:
 {schema}
-
 OBJECTS:
 - dfs: dict of DataFrames, e.g. dfs['Sheet1']
 - wb: openpyxl Workbook
 - path: str file path
 - pd: pandas
-
 RULES (MUST FOLLOW):
 1. Return ONLY Python code. No markdown.
 2. ALWAYS end by setting result = ...
@@ -229,7 +207,6 @@ RULES (MUST FOLLOW):
    result = dfs['Sheet1'].groupby('Dept')['Salary'].mean().reset_index()
 """
 
-
 def generate_excel_code(llm, question: str, schema: str, chat_history: list) -> str:
     messages = [SystemMessage(content=_excel_system_message(schema))]
     messages.extend(chat_history)
@@ -238,8 +215,9 @@ def generate_excel_code(llm, question: str, schema: str, chat_history: list) -> 
     content = response.content if hasattr(response, "content") else str(response)
     return _extract_code_from_llm(str(content or ""))
 
-
-
+# ---------------------------------------------------------------------------
+# Login
+# ---------------------------------------------------------------------------
 def login_page():
     st.title("🔐 Talk-to-DB Login")
     with st.form("login_form"):
@@ -254,15 +232,12 @@ def login_page():
             else:
                 st.error("Invalid username or password")
 
-
 # ---------------------------------------------------------------------------
 # Connect DB
 # ---------------------------------------------------------------------------
-
 def db_connection_page():
     st.title("📂 Connect Your Database")
     st.markdown("All confirmed writes go **directly** to the real database.")
-
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
         "📁 SQLite File",
         "🐬 MySQL / MariaDB",
@@ -443,7 +418,6 @@ def db_connection_page():
                 # CSV → convert to xlsx for formula support
                 if path.lower().endswith(".csv"):
                     import pandas as _pd
-                    from openpyxl import Workbook
                     df = _pd.read_csv(path)
                     xlsx_path = path.rsplit(".", 1)[0] + ".xlsx"
                     df.to_excel(xlsx_path, index=False, engine="openpyxl")
@@ -504,22 +478,18 @@ def db_connection_page():
             st.success("Sample database loaded")
             st.rerun()
 
-
 # ---------------------------------------------------------------------------
-# GridFS panel (FIXED — no None.startswith)
+# GridFS panel
 # ---------------------------------------------------------------------------
-
 def render_gridfs_panel(db):
     st.subheader("📎 Store Images / Videos / Documents (GridFS)")
     st.caption("Files are stored inside MongoDB using GridFS.")
-
     uploaded = st.file_uploader(
         "Upload image, video or document",
         type=["png", "jpg", "jpeg", "gif", "webp", "mp4", "mov", "avi", "pdf", "doc", "docx", "txt", "csv", "xlsx", "zip"],
         accept_multiple_files=True,
         key="gridfs_uploader",
     )
-
     if uploaded:
         for f in uploaded:
             btn_key = f"up_{f.name}_{getattr(f, 'size', 0)}"
@@ -536,7 +506,6 @@ def render_gridfs_panel(db):
                     st.rerun()
                 except Exception as e:
                     st.error(f"Upload failed: {e}")
-
     st.markdown("---")
     st.markdown("**Stored files**")
     try:
@@ -548,18 +517,14 @@ def render_gridfs_panel(db):
                 fid = str(f.get("_id", ""))
                 fname = f.get("filename") or "unnamed"
                 length = f.get("length") or 0
-                # CRITICAL FIX: contentType must always be a string
                 ctype = f.get("contentType") or f.get("content_type") or "application/octet-stream"
                 if not isinstance(ctype, str):
                     ctype = "application/octet-stream"
-
                 cols = st.columns([3, 1, 1, 1])
                 cols[0].write(f"**{fname}**  \n`{fid}` · {length:,} bytes · {ctype}")
-
                 data, dl_name, dl_ctype = download_from_gridfs(db, fid)
                 dl_name = dl_name or fname
                 dl_ctype = dl_ctype or ctype
-
                 with cols[1]:
                     if data is not None:
                         st.download_button(
@@ -569,14 +534,12 @@ def render_gridfs_panel(db):
                             mime=dl_ctype,
                             key=f"dl_{fid}",
                         )
-
                 with cols[2]:
                     if ctype.startswith("image/") and data is not None:
                         try:
                             st.image(data, width=80)
                         except Exception:
                             st.caption("preview n/a")
-
                 with cols[3]:
                     if st.button("🗑️", key=f"del_{fid}"):
                         ok, msg = delete_from_gridfs(db, fid)
@@ -588,14 +551,11 @@ def render_gridfs_panel(db):
     except Exception as e:
         st.error(f"Could not list files: {e}")
 
-
 # ---------------------------------------------------------------------------
 # Chat
 # ---------------------------------------------------------------------------
-
 def chat_app():
     db_type = st.session_state.get("db_type", "sql")
-
     if db_type == "sql" and st.session_state.get("engine") is None:
         st.session_state.db_connected = False
         st.warning("SQL connection lost. Please reconnect.")
@@ -621,6 +581,7 @@ def chat_app():
             st.write(", ".join(f"`{t}`" for t in tables) if tables else "None")
             with st.expander("View Schema"):
                 st.code(get_schema_from_engine(engine), language="text")
+
         elif db_type == "mongo":
             db = get_mongo_db()
             collections = list_mongo_collections(db)
@@ -628,6 +589,7 @@ def chat_app():
             st.write(", ".join(f"`{c}`" for c in collections) if collections else "None")
             with st.expander("View Schema / Samples"):
                 st.code(get_mongo_schema(db), language="text")
+
         else:
             # Excel
             xs = st.session_state.excel_state
@@ -636,41 +598,53 @@ def chat_app():
             st.write(", ".join(f"`{s}`" for s in sheets) if sheets else "None")
             with st.expander("View Schema / Samples"):
                 st.code(get_excel_schema(xs), language="text")
-st.caption(f"Working file:\n`{xs.get('path','')}`")
-st.info("Browser uploads cannot overwrite your original file. Download the updated Excel after edits.")
 
-try:
-    path = xs.get("path")
-    if not path or not os.path.isfile(path):
-        st.warning("Working file not found on disk.")
-    else:
-        with open(path, "rb") as fh:
-            data = fh.read()
+            st.caption(f"Working file:\n`{xs.get('path', '')}`")
+            st.info(
+                "Browser uploads cannot overwrite your original file. "
+                "Download the updated Excel after edits."
+            )
 
-        # Build a clean download filename
-        original = xs.get("original_name") or os.path.basename(path)
-        stem = Path(original).stem
-        fname = f"{stem}.xlsx"          # always serve as .xlsx
+            try:
+                path = xs.get("path")
+                if not path or not os.path.isfile(path):
+                    st.warning("Working file not found on disk.")
+                else:
+                    with open(path, "rb") as fh:
+                        data = fh.read()
 
-        st.download_button(
-            label="⬇️ Download updated Excel",
-            data=data,
-            file_name=fname,
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            key="dl_excel_sidebar",
-            type="primary",
+                    # Clean download filename
+                    original = xs.get("original_name") or os.path.basename(path)
+                    stem = Path(original).stem
+                    fname = f"{stem}.xlsx"  # always serve as .xlsx
+
+                    st.download_button(
+                        label="⬇️ Download updated Excel",
+                        data=data,
+                        file_name=fname,
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        key="dl_excel_sidebar",
+                        type="primary",
+                    )
+            except Exception as e:
+                st.warning(f"Download unavailable: {e}")
+
+        st.divider()
+        st.subheader("LLM Settings")
+        st.success("✅ Groq API Key loaded from program")
+        model = st.selectbox(
+            "Model",
+            [
+                "qwen/qwen3.6-27b",
+                "qwen/qwen3.8-27b",
+                "groq/compound-mini",
+                "groq/compound",
+                "llama-3.3-70b-versatile",
+                "llama-3.1-8b-instant",
+                "openai/gpt-oss-20b",
+            ],
+            index=0,
         )
-except Exception as e:
-    st.warning(f"Download unavailable: {e}")
-    st.divider()
-    st.subheader("LLM Settings")
-    st.success("✅ Groq API Key loaded from program")
-    model = st.selectbox(
-        "Model",
-        ["qwen/qwen3.6-27b", "qwen/qwen3.8-27b", "groq/compound-mini", "groq/compound", "llama-3.3-70b-versatile", "llama-3.1-8b-instant", "openai/gpt-oss-20b"],
-        index=0,
-        )
-
         st.divider()
         if st.button("🔄 Change Database"):
             for k in list(st.session_state.keys()):
@@ -800,7 +774,6 @@ except Exception as e:
                     st.session_state.excel_state = new_state
                     st.session_state.schema = get_excel_schema(new_state)
                     df = excel_result_to_dataframe(result)
-                    path = new_state.get("path", "")
                     note = "\n\n💾 Changes are saved to the working file. Click **Download updated Excel** in the sidebar."
                     if df is not None and not df.empty:
                         msg["content"] = f"✅ Updated & saved. Showing **{len(df)}** row(s)." + note
@@ -866,6 +839,7 @@ except Exception as e:
                 else:
                     st.session_state.messages.append({"role": "assistant", "content": "No matching records found.", "sql": generated})
             st.rerun()
+
         elif db_type == "mongo":
             if is_mongo_write(generated):
                 st.session_state.pending_mongo = generated
@@ -883,6 +857,7 @@ except Exception as e:
                     else:
                         st.session_state.messages.append({"role": "assistant", "content": f"Result: `{result}`", "mongo_code": generated})
             st.rerun()
+
         else:
             # Excel
             if is_excel_write(generated):
@@ -925,7 +900,6 @@ except Exception as e:
                         })
             st.rerun()
 
-
 def main():
     try:
         if "authenticated" not in st.session_state:
@@ -942,7 +916,6 @@ def main():
     except Exception as e:
         st.error("App error")
         st.exception(e)
-
 
 if __name__ == "__main__":
     main()
