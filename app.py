@@ -660,7 +660,7 @@ def chat_app():
         st.success("✅ Groq API Key loaded from program")
         model = st.selectbox(
             "Model",
-            ["qwen/qwen3.8-27b", "groq/compound-mini", "groq/compound", "llama-3.3-70b-versatile", "llama-3.1-8b-instant", "openai/gpt-oss-20b"],
+            ["qwen/qwen3.6-27b", "qwen/qwen3.8-27b", "groq/compound-mini", "groq/compound", "llama-3.3-70b-versatile", "llama-3.1-8b-instant", "openai/gpt-oss-20b"],
             index=0,
         )
 
