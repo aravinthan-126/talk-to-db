@@ -636,7 +636,7 @@ def chat_app():
             st.write(", ".join(f"`{s}`" for s in sheets) if sheets else "None")
             with st.expander("View Schema / Samples"):
                 st.code(get_excel_schema(xs), language="text")
-            st.caption(f"Working file:\n`{xs.get('path','')}`")
+st.caption(f"Working file:\n`{xs.get('path','')}`")
 st.info("Browser uploads cannot overwrite your original file. Download the updated Excel after edits.")
 
 try:
