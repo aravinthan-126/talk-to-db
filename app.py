@@ -98,7 +98,7 @@ def get_mongo_db():
         st.rerun()
     return db
 
-def get_llm(api_key: str, model: str = "qwen/qwen3.8-27b"):
+def get_llm(api_key: str, model: str = "qwen/compound"):
     return ChatGroq(groq_api_key=api_key, model_name=model, temperature=0.1)
 
 def _extract_code_from_llm(text: str) -> str:
